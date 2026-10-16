@@ -1,0 +1,756 @@
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/tmdb/TmdbCredits.java
+package com.hertt.moviesallieapi.dto.tmdb;
+
+public record TmdbCredits(
+
+    List<TmdbCastMember> cast,
+    List<TmdbCrewMember> crew
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/tmdb/TmdbCastMember.java
+package com.hertt.moviesallieapi.dto.tmdb;
+
+public record TmdbCastMember(
+
+    Long id,
+    String name,
+    String character,
+    Integer order
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/tmdb/TmdbCrewMember.java
+package com.hertt.moviesallieapi.dto.tmdb;
+
+public record TmdbCrewMember(
+
+    Long id,
+    String name,
+    String job,
+    String department
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/tmdb/TmdbMovieResult.java
+package com.hertt.moviesallieapi.dto.tmdb;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record TmdbMovieResult(
+
+    Long id,
+    String title,
+    String overview,
+    @JsonProperty("release_date")
+    String releaseDate,
+    @JsonProperty("poster_path")
+    String posterPath
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/tmdb/TmmdbMovieDetails.java
+package com.hertt.moviesallieapi.dto.tmdb;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record TmmdbMovieDetails(
+
+    Long id,
+    String title,
+    String overview,
+    @JsonProperty("release_date")
+    String releaseDate,
+    @JsonProperty("poster_path")
+    String posterPath,
+    Integer runtime,
+    TmdbCredits credits
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/tmdb/TmdbSearchResponse.java
+package com.hertt.moviesallieapi.dto.tmdb;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
+
+public record TmdbSearchResponse(
+
+    Integer page,
+    List<TmdbMovieResult> results,
+    @JsonProperty("total_pages")
+    Integer totalPages,
+    @JsonProperty("total_results")
+    Integer totalResults
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/request/LoginRequest.java
+package com.hertt.moviesallieapi.dto.request;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
+public record LoginRequest(
+
+        @NotBlank(message = "O email é obrigatório")
+        @Email(message = "O email é obrigatório.")
+        String email,
+
+        @NotBlank(message = "A senha é obrigatória.")
+        String password
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/request/RegisterRequest.java
+package com.hertt.moviesallieapi.dto.request;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record RegisterRequest(
+
+        @NotBlank(message = "Username é obrigatório.")
+        @Size(min = 3, max = 50, message = "O username deve ter entre 3 e 50 caracteres.")
+        String username,
+
+        @NotBlank(message = "O email é obrigatório")
+        @Email(message = "O email deve ser válido")
+        @Size(max = 100, message = "O email deve ter no máximo 100 caracteres")
+        String email,
+
+        @NotBlank(message = "A senha é obrigatória.")
+        @Size(min = 6, max = 100, message = "A senha deve ter entre 6 e 100 caracteres.")
+        String password
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/request/AddWatchedMovieRequest.java
+package com.hertt.moviesallieapi.dto.request;
+
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+
+public record AddWatchedMovieRequest(
+
+    @NotNull(message = "O ID do filme no TMDB é ogrigatório.")
+    @Positive(message = "O ID do filme no TMDB deve ser positivo.")
+    Long tmdbID,
+
+    @Size(max = 2000, message = "O comentário deve ter no máximo 2000 caracteres.")
+    String comment
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/response/AuthResponse.java
+package com.hertt.moviesallieapi.dto.response;
+
+public record AuthResponse(
+
+        String token,
+        String tokenType,
+        long expiresIn
+
+) {
+
+    public AuthResponse(String token, long expiresIn){
+        this(token, "Bearer", expiresIn);
+    }
+
+}
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/response/UserResponse.java
+package com.hertt.moviesallieapi.dto.response;
+
+public record UserResponse(
+
+    Long id,
+    String username,
+    String email
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/dto/response/WatchedMovieResponse.java
+package com.hertt.moviesallieapi.dto.response;
+
+import java.time.LocalDateTime;
+
+public record WatchedMovieResponse(
+
+    Long id,
+    Long tmdbId,
+    String title,
+    Integer releaseYear,
+    String director,
+    String overview,
+    String posterUrl,
+    String mainActors,
+    String comment,
+    LocalDateTime watchedAt
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/config/TmdbProperties.java
+package com.hertt.moviesallieapi.config;
+
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+
+@Validated // entender pq o uso d
+@ConfigurationProperties(prefix = "tmdb")
+public record TmdbProperties(
+
+    @NotBlank(message = "A URL base do TMDB é obrigatória.")
+    String baseUrl,
+
+    @NotBlank(message = "O token do TMDB é obrigatório.")
+    String token,
+
+    @NotBlank(message = "O tamanho do pôster é obrigatório.")
+    String posterSize
+
+) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/entity/User.java
+package com.hertt.moviesallieapi.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+@Entity
+@Table(
+        name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
+                @UniqueConstraint(name = "uk_users_username", columnNames = "username")
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode(of = "id")
+@ToString(exclude = {"password", "watchedMovies"})
+public class User implements UserDetails {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 50)
+    private String username;
+
+    @Column(nullable = false, length = 100)
+    private String email;
+
+    @Column(nullable = false)
+    private String password;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    @Builder.Default
+    private List<WatchedMovie> watchedMovies = new ArrayList<>();
+
+    // ==================== Callbacks JPA ====================
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // ==================== UserDetails ====================
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of();
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return email; // login por email
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    // ==================== Helpers ====================
+
+    public void addWatchedMovie(WatchedMovie movie) {
+        watchedMovies.add(movie);
+        movie.setUser(this);
+    }
+
+    public void removeWatchedMovie(WatchedMovie movie) {
+        watchedMovies.remove(movie);
+        movie.setUser(null);
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// file: src/main/java/com/hertt/moviesallieapi/entity/WatchedMovie.java
+package com.hertt.moviesallieapi.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(
+        name = "watched_movies",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_watched_movies_user_tmdb",
+                        columnNames = {"user_id", "tmdb_id"}
+                )
+        },
+        indexes = {
+                @Index(name = "idx_watched_movies_user", columnList = "user_id"),
+                @Index(name = "idx_watched_movies_user_watched_at", columnList = "user_id, watched_at")
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode(of = "id")
+@ToString(exclude = "user")
+public class WatchedMovie {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+
+    @Column(name = "tmbd_id", nullable = false)
+    private Long tmdbId;
+
+    @Column(nullable = false, length = 255)
+    private String title;
+
+    @Column(name = "release_year")
+    private Integer releaseYear;
+
+    @Column(length = 150)
+    private String director;
+
+    @Column(columnDefinition = "TEXT")
+    private String overview;
+
+    @Column(name = "poster_path", length = 250)
+    private String posterPath;
+
+    @Column(name = "main_actors", columnDefinition = "TEXT")
+    private String mainActors;
+
+    @Column(columnDefinition = "TEXT")
+    private String comment;
+
+    @Column(name = "watched_at", nullable = false, updatable = false)
+    private LocalDateTime watchedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    // Callbacks JPA
+
+    @PrePersist
+    protected void onCreate(){
+        this.watchedAt = LocalDateTime.now();
+    }
+
+    // Helpers
+
+    public void attachTo(User user){
+        this.user = user;
+    }
+
+    public void detachFromUser(){
+        this.user = null;
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// file: src/main/java/com/hertt/moviesallieapi/security/JwtService.java
+package com.hertt.moviesallieapi.security;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
+import java.util.Date;
+import java.util.function.Function;
+
+@Service
+public class JwtService {
+
+    private final JwtProperties jwtProperties;
+    private final SecretKey signingKey;
+
+    public JwtService(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+        // A chave deve ter pelo menos 256 bits (32 bytes) para HS256
+        byte[] keyBytes = Decoders.BASE64.decode(jwtProperties.secret());
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public String generateToken(UserDetails userDetails) {
+        return Jwts.builder()
+                .subject(userDetails.getUsername()) // o email
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + jwtProperties.expiration()))
+                .signWith(signingKey)
+                .compact();
+    }
+
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    private Claims extractAllClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        final String username = extractUsername(token);
+        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    }
+
+    private boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
+    }
+
+    private Date extractExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration);
+    }
+}
+
+// file: src/main/java/com/hertt/moviesallieapi/security/JwtProperties.java
+package com.hertt.moviesallieapi.security;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "jwt")
+public record JwtProperties(String secret, long expiration) { }
+
+
+// file: src/main/java/com/hertt/moviesallieapi/repository/UserRepository.java
+package com.hertt.moviesallieapi.repository;
+
+import com.hertt.moviesallieapi.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+
+/*
+* Busca por um usuário pelo email.
+* Usado pelo CustomUserDetailsService durante o login.
+* */
+Optional<User> findByEmail(String email);
+
+/*
+* Busca um usuário pelo username.
+* Útil para exibição de perfis públicos.
+* */
+Optional<User> findByUsername(String username);
+
+/*
+* Verifica se já existe um usuário com o email informado.
+* Usado no cadastro para evitar duplicatas.
+* */
+boolean existsByEmail(String email);
+
+/*
+* Verifica se já existe um usuário com o username informado.
+* Usado no cadastro para evitar duplicatas.
+* */
+boolean existsByUsername(String username);
+
+}
+
+
+// file: src/main/java/com/hertt/moviesallieapi/repository/WatchedMovieRepository.java
+package com.hertt.moviesallieapi.repository;
+
+import com.hertt.moviesallieapi.entity.WatchedMovie;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface WatchedMovieRepository extends JpaRepository<WatchedMovie, Long> {
+
+    /*
+    * Lista todos os filmes assistidos de um usuário,
+    * do mais antigo para o mais recente.
+    * Consulta principal do projeto.
+    * */
+    List<WatchedMovie> findAllByUserIdOrderByWatchedAtAsc(Long userId);
+
+    /*
+    * Busca filmes assistidos de um usuário filtrando pelo título,
+    * do mais antigo para o mais recente.
+    * Usado pela barra de pesquisa interna.
+    * */
+    List<WatchedMovie> findAllByUserIdAndTitleContainingIgnoreCaseOrderByWatchedAtAsc(Long userId, String title);
+
+    /*
+    * Verifica se um usuário já marcou um determinado filme como assistido.
+    * Usado antes de inserir, para evitar duplicatas e dar feedback rápido.
+    * */
+    boolean existsByUserIdAndTmdbId(Long userId, Long tmdbId);
+
+    /*
+    * Conta quantos filmes um usuário já assistiu.
+    * Útil para exibir estatísticas no perfil.
+    * */
+    Long countsByUserId(Long userId);
+
+    /*
+    * Busca um filme assistido específico, garantindo que pertence ao usuário.
+    * Usado em operações de edição/exclusão para evitar acesso indevido.
+    * */
+    Optional<WatchedMovie> findByIdAndUserId(Long id, Long userId);
+
+    /*
+    * Remove um filme assistido específico, garantindo que pertence ao usuário.
+    * Retorna a quantidade de registros deletados (0 ou 1).
+    * */
+    long deleteByIdAndUserId(Long id, Long userId);
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// file: src/main/java/com/hertt/moviesallieapi/MoviesAllieApiApplication.java
+package com.hertt.moviesallieapi;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+
+@SpringBootApplication
+@ConfigurationPropertiesScan
+public class MoviesAllieApiApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(MoviesAllieApiApplication.class, args);
+    }
+
+}
+
+
+// file: src/main/resources/application.properties
+spring.application.name=movies-allie-api
+
+# define "dev" como perfil padrão quando nenhum for informado
+spring.profiles.active=dev
+
+# desabilita o Open Session in View
+spring.jpa.open-in-view=false
+
+# JWT
+jwt.secret=${JWT_SECRET:uma-chave-secreta-de-pelo-menos-32-caracteres-para-hs256}
+jwt.expiration=86400000
+
+tmdb.base-url=https://api.themoviedb.org/3
+tmdb.token=${TMDB_TOKEN}
+tmdb.poster-size=w500
+
+// file: src/main/resources/application-dev.properties
+# SQLite (dev)
+spring.datasource.url=jdbc:sqlite:./data/dev.db
+spring.datasource.driver-class-name=org.sqlite.JDBC
+
+# Configurações críticas para SQLite com HikariCP
+# SQLite só permite uma escrita por vez. Limitar a pool a 1 conexão
+# evita o erro "database is locked"
+spring.datasource.hikari.maximum-pool-size=1
+spring.datasource.hikari.minimum-idle=0
+spring.datasource.hikari.auto-commit=false
+
+# Dialeto do Hibernate para SQLite
+spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect
+spring.jpa.hibernate.ddl-auto=update
+
+# Flyway em dev: desabilitado por enquanto.
+# Vamos usar o ddl-auto=update do Hibernate para criar as tabelas
+# enquanto você ainda está modelando as entidades. Depois migramos
+# para o Flyway com placeholders para suportar os dois dialetos.
+spring.flyway.enabled=false
+
+// file: src/main/resources/application-prod.properties
+# PostgreSQL
+spring.datasource.url=${DATABASE_URL}
+spring.datasource.username=${DATABASE_USER}
+spring.datasource.password=${UPDATE_PASSWORD)}
+
+# Em produção, o Flyway gerencia o schema. O Hibernate apenas valida.
+spring.jpa.hibernate.ddl-auto=validate
+spring.flyway.enabled=true
+
+// file: src/test/java/com/hertt/moviesallieapi/MoviesAllieApiApplicationTests.java
+package com.hertt.moviesallieapi;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class MoviesAllieApiApplicationTests {
+
+    @Test
+    void contextLoads() {
+    }
+
+}
+
+
+

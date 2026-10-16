@@ -1,0 +1,17 @@
+package com.hertt.moviesallieapi.dto.tmdb;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record TmdbMovieDetails(
+
+    Long id,
+    String title,
+    String overview,
+    @JsonProperty("release_date")
+    String releaseDate,
+    @JsonProperty("poster_path")
+    String posterPath,
+    Integer runtime,
+    TmdbCredits credits
+
+) { }
