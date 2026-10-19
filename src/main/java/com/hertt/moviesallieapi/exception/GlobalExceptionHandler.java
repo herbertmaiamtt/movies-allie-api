@@ -96,6 +96,16 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, message, request);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(
+            IllegalArgumentException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Argumento inválido em {}: {}", request.getRequestURI(), ex.getMessage());
+
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
     // ==================================================================
     // 401 — Unauthorized
     // ==================================================================
