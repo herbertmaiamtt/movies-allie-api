@@ -6,6 +6,7 @@ import com.hertt.moviesallieapi.exception.TmdbErrorKind;
 import com.hertt.moviesallieapi.exception.TmdbIntegrationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -27,6 +28,7 @@ public class TmdbClient {
 
     // ==================== Detalhes do filme ====================
 
+    @Cacheable(value = "tmdb-movie", key = "#tmdbId", condition = "#tmdbId != null && #tmdbId > 0")
     public TmdbMovieDetails getMovieDetails(Long tmdbId) {
         log.debug("TMDB: buscando detalhes do filme {}", tmdbId);
 
@@ -45,6 +47,7 @@ public class TmdbClient {
 
     // ==================== Busca por título ====================
 
+    @Cacheable(value = "tmdb-search", key = "#query", condition = "#query != null && !#query.isBlank()")
     public TmdbSearchResponse searchMovies(String query) {
         if (query == null || query.isBlank()) {
             throw new IllegalArgumentException("O termo de busca não pode ser vazio.");
@@ -89,8 +92,17 @@ public class TmdbClient {
                     notFoundMessage
             );
 
+        } catch (HttpClientErrorException.TooManyRequests ex) {
+            // 429 indica que o limite de taxa (rate limit) da API do TMDB foi atingido.
+            log.warn("Limite de requisições do TMDB atingido (HTTP 429).");
+            throw new TmdbIntegrationException(
+                    TmdbErrorKind.RATE_LIMITED,
+                    "Limite de requisições ao TMDB excedido. Tente novamente em instantes.",
+                    ex
+            );
+
         } catch (HttpClientErrorException ex) {
-            // Outros 4xx (400, 401, 403, 429...) indicam problema do lado do cliente
+            // Outros 4xx (400, 401, 403...) indicam problema do lado do cliente
             // ou da configuração (ex.: token inválido). Não vazamos o corpo do erro.
             log.warn("TMDB respondeu erro de cliente (HTTP {}).",
                     ex.getStatusCode().value());
@@ -113,7 +125,7 @@ public class TmdbClient {
 
         } catch (ResourceAccessException ex) {
             // Timeout, DNS, conexão recusada — o TMDB não foi alcançado.
-            log.warn("Falha de rede ao contatar o TMDB.");
+            log.warn("Falha de rede ou timeout ao contatar o TMDB.");
             throw new TmdbIntegrationException(
                     TmdbErrorKind.UPSTREAM_ERROR,
                     "Não foi possível contatar o TMDB.",
