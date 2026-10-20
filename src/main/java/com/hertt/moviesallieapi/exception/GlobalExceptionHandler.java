@@ -1,12 +1,13 @@
-// file: src/main/java/com/hertt/moviesallieapi/exception/GlobalExceptionHandler.java
 package com.hertt.moviesallieapi.exception;
 
 import com.hertt.moviesallieapi.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
-
 
 @Slf4j
 @RestControllerAdvice
@@ -186,9 +186,35 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
-// ==================================================================
-// 502 — Bad Gateway (integração com o TMDB)
-// ==================================================================
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request
+    ) {
+        String message = resolveConstraintMessage(ex);
+        log.warn("Violação de integridade de dados em {}: {}", request.getRequestURI(), ex.getMessage());
+
+        return build(HttpStatus.CONFLICT, message, request);
+    }
+
+    @ExceptionHandler(JpaSystemException.class)
+    public ResponseEntity<ErrorResponse> handleJpaSystemException(
+            JpaSystemException ex,
+            HttpServletRequest request
+    ) {
+        // No SQLite, violações de UNIQUE constraint podem ser propagadas pelo dialeto como JpaSystemException
+        if (isUniqueConstraintViolation(ex)) {
+            String message = resolveConstraintMessage(ex);
+            log.warn("Violação de restrição única no banco em {}: {}", request.getRequestURI(), ex.getMessage());
+            return build(HttpStatus.CONFLICT, message, request);
+        }
+
+        return handleGeneric(ex, request);
+    }
+
+    // ==================================================================
+    // 404 / 429 / 502 — Integração com o TMDB
+    // ==================================================================
 
     @ExceptionHandler(TmdbIntegrationException.class)
     public ResponseEntity<ErrorResponse> handleTmdbIntegration(
@@ -197,12 +223,13 @@ public class GlobalExceptionHandler {
     ) {
         HttpStatus status = switch (ex.getKind()) {
             case NOT_FOUND      -> HttpStatus.NOT_FOUND;
+            case RATE_LIMITED   -> HttpStatus.TOO_MANY_REQUESTS;
             case UPSTREAM_ERROR -> HttpStatus.BAD_GATEWAY;
         };
 
         if (status.is4xxClientError()) {
-            log.warn("TMDB retornou erro de cliente em {}: {}",
-                    request.getRequestURI(), ex.getMessage());
+            log.warn("TMDB retornou erro de cliente (HTTP {}) em {}: {}",
+                    status.value(), request.getRequestURI(), ex.getMessage());
         } else {
             log.error("Falha de integração com o TMDB em {}: {}",
                     request.getRequestURI(), ex.getMessage(), ex);
@@ -248,5 +275,45 @@ public class GlobalExceptionHandler {
 
     private ErrorResponse.FieldError toFieldError(FieldError fe) {
         return new ErrorResponse.FieldError(fe.getField(), fe.getDefaultMessage());
+    }
+
+    private boolean isUniqueConstraintViolation(Throwable ex) {
+        String fullMessage = extractFullErrorMessage(ex).toLowerCase();
+        return fullMessage.contains("unique constraint")
+                || fullMessage.contains("sqlite_constraint_unique")
+                || fullMessage.contains("uk_watched_movies_user_tmdb")
+                || fullMessage.contains("uk_users_email")
+                || fullMessage.contains("uk_users_username");
+    }
+
+    private String resolveConstraintMessage(Throwable ex) {
+        String fullMessage = extractFullErrorMessage(ex).toLowerCase();
+
+        if (fullMessage.contains("uk_watched_movies_user_tmdb")
+                || fullMessage.contains("watched_movies.user_id")) {
+            return "Filme já marcado como assistido.";
+        }
+        if (fullMessage.contains("uk_users_email")
+                || fullMessage.contains("users.email")) {
+            return "Este email já está cadastrado.";
+        }
+        if (fullMessage.contains("uk_users_username")
+                || fullMessage.contains("users.username")) {
+            return "Este username já está em uso.";
+        }
+
+        return "Conflito de integridade de dados: o registro informado já existe.";
+    }
+
+    private String extractFullErrorMessage(Throwable ex) {
+        StringBuilder sb = new StringBuilder();
+        Throwable current = ex;
+        while (current != null) {
+            if (current.getMessage() != null) {
+                sb.append(current.getMessage()).append(" ");
+            }
+            current = current.getCause();
+        }
+        return sb.toString();
     }
 }

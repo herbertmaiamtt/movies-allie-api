@@ -150,6 +150,23 @@ class MovieControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/movies/search - Deve retornar 429 quando limite de requisições do TMDB for atingido")
+    void shouldReturn429WhenTmdbRateLimitExceeded() throws Exception {
+        when(movieService.search("Matrix"))
+                .thenThrow(new TmdbIntegrationException(
+                        TmdbErrorKind.RATE_LIMITED,
+                        "Limite de requisições ao TMDB excedido. Tente novamente em instantes."
+                ));
+
+        mockMvc.perform(get("/api/movies/search")
+                        .param("query", "Matrix")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.status", is(429)))
+                .andExpect(jsonPath("$.message", is("Limite de requisições ao TMDB excedido. Tente novamente em instantes.")));
+    }
+
+    @Test
     @DisplayName("GET /api/movies/{id} - Deve retornar 400 quando id for texto não numérico")
     void shouldReturn400WhenIdIsNotNumeric() throws Exception {
         mockMvc.perform(get("/api/movies/invalido")

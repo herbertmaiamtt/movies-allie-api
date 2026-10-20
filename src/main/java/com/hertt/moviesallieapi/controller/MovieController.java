@@ -38,6 +38,7 @@ public class MovieController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Busca realizada com sucesso."),
             @ApiResponse(responseCode = "400", description = "Termo de busca ausente ou inválido."),
+            @ApiResponse(responseCode = "429", description = "Limite de requisições ao TMDB excedido."),
             @ApiResponse(responseCode = "502", description = "Falha de comunicação ou indisponibilidade da API do TMDB.")
     })
     public ResponseEntity<MovieSearchResponse> search(
@@ -60,6 +61,7 @@ public class MovieController {
             @ApiResponse(responseCode = "200", description = "Detalhes do filme recuperados com sucesso."),
             @ApiResponse(responseCode = "400", description = "ID do filme informado inválido."),
             @ApiResponse(responseCode = "404", description = "Filme não encontrado no TMDB."),
+            @ApiResponse(responseCode = "429", description = "Limite de requisições ao TMDB excedido."),
             @ApiResponse(responseCode = "502", description = "Falha de comunicação ou indisponibilidade da API do TMDB.")
     })
     public ResponseEntity<MovieDetailsResponse> getDetails(
