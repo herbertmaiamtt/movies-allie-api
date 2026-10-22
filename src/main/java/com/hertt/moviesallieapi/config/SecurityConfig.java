@@ -1,5 +1,6 @@
 package com.hertt.moviesallieapi.config;
 
+import com.hertt.moviesallieapi.config.properties.CorsProperties;
 import com.hertt.moviesallieapi.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +11,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -18,15 +24,19 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
+    private final CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                // 1. Desabilita CSRF (API stateless com JWT não usa cookies de sessão)
+                // 1. Configura CORS para permitir requisições do frontend
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // 2. Desabilita CSRF (API stateless com JWT não usa cookies de sessão)
                 .csrf(csrf -> csrf.disable())
 
-                // 2. Regras de autorização. A ORDEM importa:
+                // 3. Regras de autorização. A ORDEM importa:
                 //    as mais específicas vêm antes do anyRequest().
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
@@ -39,17 +49,31 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // 3. Sem sessão HTTP. Cada requisição se autentica pelo token.
+                // 4. Sem sessão HTTP. Cada requisição se autentica pelo token.
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // 4. Registra o provider que definimos em ApplicationConfig.
+                // 5. Registra o provider que definimos em ApplicationConfig.
                 .authenticationProvider(authenticationProvider)
 
-                // 5. Insere o filtro JWT ANTES do filtro padrão de autenticação.
+                // 6. Insere o filtro JWT ANTES do filtro padrão de autenticação.
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(corsProperties.allowedOrigins());
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
